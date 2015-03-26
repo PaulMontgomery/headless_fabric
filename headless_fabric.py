@@ -13,15 +13,17 @@
 #
 # Headless Fabric
 # ---------------
-# Fabric (http://www.fabfile.org/) provides a great SSH/SCP abstraction layer with command line
-# tools. Because Fabric has a default configuration that favors interactive operation, this project
-# was created to provide a headless operation mode. This code is meant to be pulled into other
-# projects instead of being run with the fab command line tool.
+# Fabric (http://www.fabfile.org/) provides a great SSH/SCP abstraction layer
+# with command line tools. Because Fabric has a default configuration that
+# favors interactive operation, this project was created to provide a headless
+# operation mode. This code is meant to be pulled into other projects instead
+# of being run with the fab command line tool.
 #
-# Headless operation basically means that Fabric will be configured to eliminate interactive
-# prompts (such as passwords, thus this project requires SSH key authentication), silences some
-# of the chatty logging and traps Fabric's odd occasional sys.exit() behavior instead of raising
-# an exception (we don't want Fabric causing exits in unmonitored processes).
+# Headless operation basically means that Fabric will be configured to
+# eliminate interactive prompts (such as passwords, thus this project requires
+# SSH key authentication), silences some of the chatty logging and traps
+# Fabric's odd occasional sys.exit() behavior instead of raising an exception
+# (we don't want Fabric causing exits in unmonitored processes).
 #
 # This project also implements some non-headless operation features:
 # * Enables parallel execution by default
@@ -29,8 +31,10 @@
 # * Simple resiliency and timeout configuration
 
 import logging
+from os.path import isfile, expanduser
 
 from fabric.api import env, execute, get, hide, put, quiet, run
+from fabric.state import output as fab_output
 
 
 # Silence the very chatty paramiko logging a bit
@@ -56,10 +60,12 @@ class HeadlessFabric(object):
         env.skip_bad_hosts = True                # Don't let a bad host abort all operations
         env.parallel = True                      # Execute commands in parallel when possible
         env.gateway = gateway
-        env.use_ssh_config = True
+        if env.ssh_config_path and isfile(expanduser(env.ssh_config_path)):
+            env.use_ssh_config = True
         if key_file:  # If no key_file, use normal ~/.ssh keys
             env.no_keys = True  # Disable ~/.ssh key usage to lock this down to only key_file
             env.key_filename = key_file
+        fab_output['running'] = False  # Silence execute messages from Fabric
 
     def execute(self, command, host_list):
         """Inject a dynamic, runtime host list and execute a remote command via Fabric."""
